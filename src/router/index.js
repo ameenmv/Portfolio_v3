@@ -3,12 +3,11 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
-  // ─── Add your routes here ──────────────────
-  // {
-  //   path: "/",
-  //   name: "Home",
-  //   component: () => import("@/views/HomeView.vue"),
-  // },
+  {
+    path: "/",
+    name: "Home",
+    component: () => import("@/views/Home.vue"),
+  }
 ];
 
 const router = createRouter({

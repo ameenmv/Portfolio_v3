@@ -16,6 +16,7 @@
 
   body {
     @apply antialiased;
+    font-family: 'Space Grotesk', sans-serif;
   }
 }
 
