@@ -6,7 +6,13 @@ export default {
   ],
   theme: {
     extend: {
-      // ─── Add your custom colors, fonts, spacing, etc. here
+      colors: {
+        background: "#101318",
+        text: "#ffffff",
+      },
+      fontFamily: {
+        sans: ['Space Grotesk', 'sans-serif'],
+      },
     },
   },
   plugins: [],
