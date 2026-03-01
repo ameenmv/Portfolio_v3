@@ -1,106 +1,59 @@
 <template>
-   <section class="hero">
+   <section class="hero" ref="heroRef">
       <navbar />
 
-      <div class="hero__mid">
-         <div class="hero__bracket">
-            <span class="hero__paren">(</span>
-            <div class="hero__intro">
-               <p class="hero__hello">HELLO!</p>
-               <p class="hero__intro-text">
-                  I'm Ameen Mohamed, a frontend<br>
-                  developer &amp; Software Engineer.<br>
-                  Welcome to my portfolio!
-               </p>
-            </div>
-            <span class="hero__paren">)</span>
-         </div>
+      <div class="hero__center">
+         <h1 class="hero__title">
+            <span class="hero__line">DESIGN WITH A</span>
+            <span class="hero__line hero__line--red">HUMAN TOUCH</span>
+         </h1>
       </div>
 
-      <div class="hero__stage">
-         <span class="hero__display" ref="creativeRef" @mousemove="(e) => onDisplayMouseMove(e, creativeRef)"
-            @mouseleave="(e) => onDisplayMouseLeave(e, creativeRef)">Creative</span>
-
-         <div class="hero__img-wrap">
-            <img src="@/assets/images/hero.webp" alt="Ameen Mohamed" class="hero__img" fetchpriority="high"
-               decoding="async" />
-         </div>
-
-         <span class="hero__display hero__display--right" ref="devRef" @mousemove="(e) => onDisplayMouseMove(e, devRef)"
-            @mouseleave="(e) => onDisplayMouseLeave(e, devRef)">dev</span>
-      </div>
-
+      <button class="hero__scroll-btn" aria-label="Scroll down">
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 13l5 5 5-5" />
+            <path d="M7 7l5 5 5-5" />
+         </svg>
+      </button>
    </section>
 </template>
 
 <script setup>
 import Navbar from '@/components/layout/navbar.vue'
 import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { onMounted, ref } from 'vue'
 
-const creativeRef = ref(null)
-const devRef = ref(null)
+gsap.registerPlugin(ScrollTrigger)
 
-
-function buildShadow(x, y) {
-   const layers = []
-   const steps = 8
-   for (let i = 1; i <= steps; i++) {
-      const ratio = i / steps
-      layers.push(`${x * ratio}px ${y * ratio}px 0 rgb(235, 218, 40)`)
-   }
-   return layers.join(', ')
-}
-
-function onDisplayMouseMove(event, elRef) {
-   const el = elRef?.$el || elRef
-   if (!el) return
-   const bounds = el.getBoundingClientRect()
-
-   const offsetX = event.clientX - (bounds.left + bounds.width / 2)
-   const offsetY = event.clientY - (bounds.top + bounds.height / 2)
-
-   const maxShadow = 15
-   const normX = (offsetX / (bounds.width / 2)) * maxShadow
-   const normY = (offsetY / (bounds.height / 2)) * maxShadow
-
-   gsap.to(el, {
-      x: offsetX * 0.08,
-      y: offsetY * 0.12,
-      textShadow: buildShadow(normX, normY),
-      duration: 0.5,
-      ease: 'power2.out',
-   })
-}
-
-function onDisplayMouseLeave(event, elRef) {
-   const el = elRef?.$el || elRef
-   if (!el) return
-
-   gsap.to(el, {
-      x: 0,
-      y: 0,
-      textShadow: buildShadow(0, 0),
-      duration: 0.9,
-      ease: 'elastic.out(1, 0.4)',
-   })
-}
-
+const heroRef = ref(null)
 
 onMounted(() => {
-   gsap.from('.hero__bracket', {
-      opacity: 0, y: 30, duration: 0.9, ease: 'power3.out', delay: 0.2
+   const tl = gsap.timeline({ defaults: { ease: 'power4.out' } })
+
+   tl.from('.hero__line', {
+      y: 80,
+      opacity: 0,
+      duration: 1.2,
+      stagger: 0.15,
    })
 
-   gsap.from('.hero__display:first-of-type', {
-      x: -80, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.4
-   })
-   gsap.from('.hero__display--right', {
-      x: 80, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.4
-   })
+   tl.from('.hero__scroll-btn', {
+      scale: 0,
+      opacity: 0,
+      duration: 0.6,
+      ease: 'back.out(2)',
+   }, '-=0.5')
 
-   gsap.from('.hero__img-wrap', {
-      scale: 0.85, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.5
+   gsap.to(heroRef.value, {
+      backgroundColor: '#d4a0a0',
+      scrollTrigger: {
+         trigger: heroRef.value,
+         start: 'top top',
+         end: 'bottom top',
+         scrub: 0.8,
+      }
    })
 })
 </script>
@@ -108,113 +61,74 @@ onMounted(() => {
 <style scoped>
 .hero {
    min-height: 100vh;
-   background: #101318;
-   color: #fff;
+   background: #f5f0e8;
+   color: #1a1a1a;
    display: flex;
    flex-direction: column;
+   position: relative;
    overflow: hidden;
 }
 
-.hero__mid {
+.hero__center {
    flex: 1;
    display: flex;
    align-items: center;
    justify-content: center;
-   padding: 2rem 1rem;
+   padding: 2rem;
+   z-index: 2;
 }
 
-.hero__bracket {
-   display: flex;
-   align-items: center;
-   gap: 1.5rem;
-}
-
-.hero__paren {
-   font-family: 'Cormorant Garamond', serif;
-   font-weight: 300;
-   font-size: clamp(7rem, 13vw, 11rem);
-   line-height: 1;
-   color: rgba(255, 255, 255, 0.75);
-   user-select: none;
-   margin-top: -0.05em;
-}
-
-.hero__intro {
+.hero__title {
+   text-align: center;
+   margin: 0;
    display: flex;
    flex-direction: column;
-   gap: 0.6rem;
-   text-align: center;
-   max-width: 260px;
+   gap: 0.1em;
 }
 
-.hero__hello {
-   font-size: 0.68rem;
-   font-weight: 600;
-   letter-spacing: 0.25em;
-   color: rgba(255, 255, 255, 0.4);
-   text-transform: uppercase;
-}
-
-.hero__intro-text {
-   font-size: 0.88rem;
-   color: rgba(255, 255, 255, 0.65);
-   line-height: 1.75;
-}
-
-/* Stage */
-.hero__stage {
-   display: flex;
-   align-items: flex-end;
-   justify-content: space-between;
-   gap: 1rem;
-   margin: 0 -0.02em;
-}
-
-.hero__display {
-   font-family: 'Yatra One', cursive;
-   font-size: clamp(5rem, 14vw, 13rem);
-   line-height: 0.9;
-   color: #fff;
-   white-space: nowrap;
-   padding-bottom: 0.05em;
-   flex-shrink: 0;
-   cursor: default;
-   will-change: filter, opacity;
-   text-shadow: 0 0 0 rgb(235, 218, 40);
-}
-
-.hero__img-wrap {
-   flex: 0 0 auto;
-   width: clamp(160px, 22vw, 320px);
-   align-self: flex-end;
-}
-
-.hero__img {
-   width: 100%;
-   aspect-ratio: 3/4;
-   object-fit: cover;
-   border-radius: 16px;
+.hero__line {
    display: block;
-   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+   font-family: 'Pastline Sans', serif;
+   font-size: clamp(2.5rem, 7vw, 5.5rem);
+   font-weight: 400;
+   letter-spacing: 0.05em;
+   line-height: 1.1;
+}
+
+.hero__line--red {
+   color: #c0392b;
+}
+
+.hero__scroll-btn {
+   position: absolute;
+   bottom: 2.5rem;
+   right: 3rem;
+   width: 64px;
+   height: 64px;
+   border-radius: 50%;
+   background: #1a1714;
+   color: #f5f0e8;
+   border: none;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 2;
+   transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1),
+      background 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.hero__scroll-btn:hover {
+   transform: scale(1.08);
+   background: #c0392b;
 }
 
 @media (max-width: 700px) {
-   .hero__paren {
-      font-size: 4.5rem;
-   }
-
-   .hero__stage {
-      flex-direction: column;
-      align-items: center;
-      padding-bottom: 2rem;
-   }
-
-   .hero__display {
-      font-size: 4rem;
-   }
-
-   .hero__img-wrap {
-      width: 160px;
+   .hero__scroll-btn {
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 52px;
+      height: 52px;
    }
 }
 </style>
