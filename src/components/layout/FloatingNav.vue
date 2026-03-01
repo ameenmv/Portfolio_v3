@@ -11,15 +11,15 @@
 
    <!-- ── Backdrop ──────────────────────────────────────────────── -->
    <Transition name="backdrop">
-      <div v-if="open" class="backdrop" @click="open = false" />
+      <div v-if="open" class="backdrop" @click="close" />
    </Transition>
 
    <!-- ── Side Panel ───────────────────────────────────────────── -->
-   <Transition name="panel">
-      <nav v-if="open" class="panel">
+   <Transition @before-enter="onPanelBeforeEnter" @enter="onPanelEnter" @leave="onPanelLeave" :css="false">
+      <nav v-if="open" class="panel" ref="panelRef">
 
          <!-- Close button — sits outside panel left edge -->
-         <button class="close-btn" ref="closeRef" @click="open = false" @mousemove="(e) => onMouseMove(e, closeRef)"
+         <button class="close-btn" ref="closeRef" @click="close" @mousemove="(e) => onMouseMove(e, closeRef)"
             @mouseleave="(e) => onMouseLeave(e, closeRef)" aria-label="Close navigation">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                <line x1="1" y1="1" x2="12" y2="12" stroke="white" stroke-width="2" stroke-linecap="round" />
@@ -30,7 +30,7 @@
          <!-- ── Nav items ─────────────────────────────────────────── -->
          <ul class="nav-list">
             <li v-for="(item, i) in links" :key="i" :ref="el => { if (el) itemRefs[i] = el }" class="nav-item">
-               <a :href="item.href" class="nav-item__link" @click="open = false"
+               <a :href="item.href" class="nav-item__link" @click="close"
                   @mousemove="(e) => onMouseMove(e, itemRefs[i])" @mouseleave="(e) => onMouseLeave(e, itemRefs[i])">
                   <span class="nav-item__num">0{{ i + 1 }}</span>
                   <span class="nav-item__label" :class="{ 'nav-item__label--active': i === activeIndex }">
@@ -44,7 +44,8 @@
          <div class="socials">
             <a v-for="(s, i) in socials" :key="i" :ref="el => { if (el) socialRefs[i] = el }" :href="s.href"
                class="social-btn" target="_blank" rel="noopener noreferrer" :aria-label="s.name"
-               @mousemove="(e) => onMouseMove(e, socialRefs[i])" @mouseleave="(e) => onMouseLeave(e, socialRefs[i])">
+               @mousemove="(e) => onSocialMouseMove(e, socialRefs[i])"
+               @mouseleave="(e) => onSocialMouseLeave(e, socialRefs[i])">
                <svg viewBox="0 0 24 24" fill="currentColor" v-html="s.svg" />
             </a>
          </div>
@@ -56,22 +57,32 @@
 <script setup>
 import { useMagneticEffect } from '@/composables/useMagneticEffect'
 import { gsap } from 'gsap'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 // ── Magnetic ─────────────────────────────────────────────────
 const { onMouseMove, onMouseLeave } = useMagneticEffect({
-   strength: 0.5,
-   duration: 0.4,
-   resetDuration: 0.7,
+   strength: 0.45,
+   duration: 0.6,
+   resetDuration: 0.9,
+})
+
+// ── Magnetic (stronger for social icons) ─────────────────────
+const { onMouseMove: onSocialMouseMove, onMouseLeave: onSocialMouseLeave } = useMagneticEffect({
+   strength: 0.8,
+   duration: 0.5,
+   resetDuration: 0.8,
+   resetEase: 'elastic.out(1.2, 0.35)',
 })
 
 // ── State ─────────────────────────────────────────────────────
 const open = ref(false)
 const showFab = ref(false)
+const isAnimating = ref(false)
 
 // ── Refs ──────────────────────────────────────────────────────
 const fabRef = ref(null)
 const closeRef = ref(null)
+const panelRef = ref(null)
 const itemRefs = ref([])
 const socialRefs = ref([])
 
@@ -83,28 +94,104 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 // ── Active link detection ─────────────────────────────────────
 const activeIndex = ref(0)
 
-// ── Run GSAP when panel opens ─────────────────────────────────
-watch(open, (val) => {
-   if (!val) return
-   // reset refs each open
+// ── Close helper ──────────────────────────────────────────────
+function close() {
+   if (isAnimating.value) return
+   open.value = false
+}
+
+// ── GSAP transition hooks for the panel ───────────────────────
+function onPanelBeforeEnter(el) {
+   // Reset refs each open
    itemRefs.value = []
    socialRefs.value = []
+   // Start panel off-screen to the right
+   gsap.set(el, { xPercent: 100 })
+}
 
-   // items: slide from right with stagger
-   setTimeout(() => {
-      const items = document.querySelectorAll('.nav-item')
-      const social = document.querySelectorAll('.social-btn')
+function onPanelEnter(el, done) {
+   isAnimating.value = true
 
-      gsap.fromTo(items,
-         { x: 70, opacity: 0 },
-         { x: 0, opacity: 1, duration: 0.55, ease: 'power3.out', stagger: 0.09, delay: 0.12 }
-      )
-      gsap.fromTo(social,
-         { y: 18, opacity: 0 },
-         { y: 0, opacity: 1, duration: 0.45, ease: 'power3.out', stagger: 0.07, delay: 0.52 }
-      )
-   }, 30)
-})
+   const tl = gsap.timeline({
+      onComplete: () => {
+         isAnimating.value = false
+         done()
+      }
+   })
+
+   // 1. Panel slides in with a smooth ease
+   tl.to(el, {
+      xPercent: 0,
+      duration: 0.7,
+      ease: 'power4.out',
+   })
+
+   // 2. Close button pops in with spring
+   tl.fromTo('.close-btn',
+      { scale: 0, opacity: 0, rotate: -90 },
+      { scale: 1, opacity: 1, rotate: 0, duration: 0.5, ease: 'back.out(2)' },
+      '-=0.4'
+   )
+
+   // 3. Nav items stagger from below with fade
+   tl.fromTo('.nav-item',
+      { y: 50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', stagger: 0.08 },
+      '-=0.35'
+   )
+
+   // 4. Social icons fade up
+   tl.fromTo('.social-btn',
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out', stagger: 0.06 },
+      '-=0.3'
+   )
+}
+
+function onPanelLeave(el, done) {
+   isAnimating.value = true
+
+   const tl = gsap.timeline({
+      onComplete: () => {
+         isAnimating.value = false
+         done()
+      }
+   })
+
+   // 1. Social icons fade out first
+   tl.to('.social-btn', {
+      y: 15,
+      opacity: 0,
+      duration: 0.25,
+      ease: 'power2.in',
+      stagger: 0.03,
+   })
+
+   // 2. Nav items slide out with stagger (reverse order)
+   tl.to('.nav-item', {
+      y: 30,
+      opacity: 0,
+      duration: 0.3,
+      ease: 'power2.in',
+      stagger: { each: 0.04, from: 'end' },
+   }, '-=0.15')
+
+   // 3. Close button shrinks out
+   tl.to('.close-btn', {
+      scale: 0,
+      opacity: 0,
+      rotate: 90,
+      duration: 0.25,
+      ease: 'power2.in',
+   }, '-=0.2')
+
+   // 4. Panel slides out smoothly
+   tl.to(el, {
+      xPercent: 100,
+      duration: 0.55,
+      ease: 'power3.inOut',
+   }, '-=0.15')
+}
 
 // ── Data ──────────────────────────────────────────────────────
 const links = [
@@ -152,12 +239,12 @@ const socials = [
    align-items: center;
    justify-content: center;
    gap: 5px;
-   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-   transition: box-shadow 0.25s ease;
+   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+   transition: box-shadow 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .fab:hover {
-   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 .fab__bar {
@@ -166,7 +253,7 @@ const socials = [
    height: 1.8px;
    background: #fff;
    border-radius: 2px;
-   transition: width 0.2s ease;
+   transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .fab__bar--mid {
@@ -186,7 +273,7 @@ const socials = [
 /* FAB entrance/exit */
 .fab-enter-active,
 .fab-leave-active {
-   transition: opacity 0.3s ease, transform 0.3s ease;
+   transition: opacity 0.45s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .fab-enter-from {
@@ -209,9 +296,13 @@ const socials = [
    -webkit-backdrop-filter: blur(4px);
 }
 
-.backdrop-enter-active,
+.backdrop-enter-active {
+   transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .backdrop-leave-active {
-   transition: opacity 0.4s ease;
+   transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+   transition-delay: 0.15s;
 }
 
 .backdrop-enter-from,
@@ -231,18 +322,11 @@ const socials = [
    display: flex;
    flex-direction: column;
    justify-content: center;
+   align-items: center;
    padding: 3.5rem 3.5rem 3.5rem 4rem;
 }
 
-.panel-enter-active,
-.panel-leave-active {
-   transition: transform 0.48s cubic-bezier(0.77, 0, 0.175, 1);
-}
-
-.panel-enter-from,
-.panel-leave-to {
-   transform: translateX(100%);
-}
+/* Panel transitions are now handled by GSAP JS hooks */
 
 /* ── Close button ────────────────────────────────────────── */
 .close-btn {
@@ -259,7 +343,7 @@ const socials = [
    align-items: center;
    justify-content: center;
    box-shadow: 0 4px 18px rgba(192, 57, 43, 0.45);
-   transition: background 0.2s ease;
+   transition: background 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .close-btn:hover {
@@ -289,24 +373,26 @@ const socials = [
 }
 
 .nav-item__num {
-   font-size: 0.68rem;
-   font-weight: 700;
-   letter-spacing: 0.12em;
+   font-family: 'Pastline Sans', serif;
+   font-size: 0.75rem;
+   font-weight: 400;
+   letter-spacing: 0.08em;
    color: #c0392b;
-   min-width: 22px;
+   min-width: 26px;
    line-height: 1;
 }
 
 .nav-item__label {
    display: inline-block;
    /* needed for magnetic GSAP */
-   font-size: clamp(2.2rem, 5.5vw, 3.8rem);
-   font-weight: 800;
-   letter-spacing: 0.03em;
+   font-family: 'Pastline Sans', serif;
+   font-size: clamp(2rem, 5vw, 3.2rem);
+   font-weight: 400;
+   letter-spacing: 0.04em;
    text-transform: uppercase;
    color: #1c1c1c;
-   line-height: 1.1;
-   transition: color 0.22s ease, letter-spacing 0.22s ease;
+   line-height: 1.2;
+   transition: color 0.5s cubic-bezier(0.25, 0.1, 0.25, 1), letter-spacing 0.55s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .nav-item__label--active {
@@ -315,13 +401,14 @@ const socials = [
 
 .nav-item__link:hover .nav-item__label {
    color: #c0392b;
-   letter-spacing: 0.07em;
+   letter-spacing: 0.02em;
 }
 
 /* ── Socials ─────────────────────────────────────────────── */
 .socials {
    display: flex;
-   gap: 0.7rem;
+   justify-content: center;
+   gap: 1rem;
    margin-top: 3rem;
 }
 
@@ -330,12 +417,12 @@ const socials = [
    /* magnetic needs this */
    align-items: center;
    justify-content: center;
-   width: 44px;
-   height: 44px;
+   width: 54px;
+   height: 54px;
    border-radius: 50%;
    background: #c0392b;
    color: #fff;
-   transition: background 0.2s ease;
+   transition: background 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .social-btn:hover {
@@ -343,8 +430,69 @@ const socials = [
 }
 
 .social-btn svg {
-   width: 16px;
-   height: 16px;
+   width: 20px;
+   height: 20px;
    pointer-events: none;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+   .panel {
+      width: 100vw;
+      padding: 3rem 2rem;
+   }
+
+   .close-btn {
+      top: 20px;
+      left: 20px;
+      width: 46px;
+      height: 46px;
+   }
+
+   .nav-item__label {
+      font-size: clamp(2rem, 8vw, 3rem);
+   }
+
+   .nav-item__num {
+      font-size: 0.65rem;
+   }
+
+   .nav-item__link {
+      padding: 0.6rem 0;
+   }
+
+   .socials {
+      margin-top: 2.5rem;
+      gap: 0.8rem;
+   }
+
+   .social-btn {
+      width: 48px;
+      height: 48px;
+   }
+
+   .social-btn svg {
+      width: 18px;
+      height: 18px;
+   }
+
+   .fab {
+      top: 18px;
+      right: 18px;
+      width: 50px;
+      height: 50px;
+   }
+
+   .fab__bar {
+      width: 18px;
+   }
+
+   .fab__bar--mid {
+      width: 18px;
+   }
+
+   .fab__bar--short {
+      width: 12px;
+   }
 }
 </style>

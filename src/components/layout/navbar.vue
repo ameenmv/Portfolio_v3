@@ -47,7 +47,7 @@ const navLinks = [
    position: relative;
    cursor: pointer;
    font-weight: 500;
-   transition: color 0.2s ease;
+   transition: color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
    padding: 4px 2px;
 }
 
@@ -59,7 +59,7 @@ const navLinks = [
    width: 0;
    height: 1.5px;
    background: currentColor;
-   transition: width 0.3s ease;
+   transition: width 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .nav-link:hover::after {
