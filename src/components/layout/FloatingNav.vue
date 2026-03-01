@@ -1,5 +1,4 @@
 <template>
-   <!-- ── FAB Toggle ──────────────────────────────────────────── -->
    <Transition name="fab">
       <button v-if="showFab" class="fab" ref="fabRef" @click="open = true" @mousemove="(e) => onMouseMove(e, fabRef)"
          @mouseleave="(e) => onMouseLeave(e, fabRef)" aria-label="Open navigation">
@@ -9,16 +8,13 @@
       </button>
    </Transition>
 
-   <!-- ── Backdrop ──────────────────────────────────────────────── -->
    <Transition name="backdrop">
       <div v-if="open" class="backdrop" @click="close" />
    </Transition>
 
-   <!-- ── Side Panel ───────────────────────────────────────────── -->
    <Transition @before-enter="onPanelBeforeEnter" @enter="onPanelEnter" @leave="onPanelLeave" :css="false">
       <nav v-if="open" class="panel" ref="panelRef">
 
-         <!-- Close button — sits outside panel left edge -->
          <button class="close-btn" ref="closeRef" @click="close" @mousemove="(e) => onMouseMove(e, closeRef)"
             @mouseleave="(e) => onMouseLeave(e, closeRef)" aria-label="Close navigation">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -27,7 +23,6 @@
             </svg>
          </button>
 
-         <!-- ── Nav items ─────────────────────────────────────────── -->
          <ul class="nav-list">
             <li v-for="(item, i) in links" :key="i" :ref="el => { if (el) itemRefs[i] = el }" class="nav-item">
                <a :href="item.href" class="nav-item__link" @click="close"
@@ -40,7 +35,6 @@
             </li>
          </ul>
 
-         <!-- ── Social icons ──────────────────────────────────────── -->
          <div class="socials">
             <a v-for="(s, i) in socials" :key="i" :ref="el => { if (el) socialRefs[i] = el }" :href="s.href"
                class="social-btn" target="_blank" rel="noopener noreferrer" :aria-label="s.name"
@@ -59,14 +53,12 @@ import { useMagneticEffect } from '@/composables/useMagneticEffect'
 import { gsap } from 'gsap'
 import { onMounted, onUnmounted, ref } from 'vue'
 
-// ── Magnetic ─────────────────────────────────────────────────
 const { onMouseMove, onMouseLeave } = useMagneticEffect({
    strength: 0.45,
    duration: 0.6,
    resetDuration: 0.9,
 })
 
-// ── Magnetic (stronger for social icons) ─────────────────────
 const { onMouseMove: onSocialMouseMove, onMouseLeave: onSocialMouseLeave } = useMagneticEffect({
    strength: 0.8,
    duration: 0.5,
@@ -74,38 +66,30 @@ const { onMouseMove: onSocialMouseMove, onMouseLeave: onSocialMouseLeave } = use
    resetEase: 'elastic.out(1.2, 0.35)',
 })
 
-// ── State ─────────────────────────────────────────────────────
 const open = ref(false)
 const showFab = ref(false)
 const isAnimating = ref(false)
 
-// ── Refs ──────────────────────────────────────────────────────
 const fabRef = ref(null)
 const closeRef = ref(null)
 const panelRef = ref(null)
 const itemRefs = ref([])
 const socialRefs = ref([])
 
-// ── Scroll watcher — show FAB after 60px ─────────────────────
 function onScroll() { showFab.value = window.scrollY > 60 }
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
 onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
-// ── Active link detection ─────────────────────────────────────
 const activeIndex = ref(0)
 
-// ── Close helper ──────────────────────────────────────────────
 function close() {
    if (isAnimating.value) return
    open.value = false
 }
 
-// ── GSAP transition hooks for the panel ───────────────────────
 function onPanelBeforeEnter(el) {
-   // Reset refs each open
    itemRefs.value = []
    socialRefs.value = []
-   // Start panel off-screen to the right
    gsap.set(el, { xPercent: 100 })
 }
 
@@ -119,28 +103,24 @@ function onPanelEnter(el, done) {
       }
    })
 
-   // 1. Panel slides in with a smooth ease
    tl.to(el, {
       xPercent: 0,
       duration: 0.7,
       ease: 'power4.out',
    })
 
-   // 2. Close button pops in with spring
    tl.fromTo('.close-btn',
       { scale: 0, opacity: 0, rotate: -90 },
       { scale: 1, opacity: 1, rotate: 0, duration: 0.5, ease: 'back.out(2)' },
       '-=0.4'
    )
 
-   // 3. Nav items stagger from below with fade
    tl.fromTo('.nav-item',
       { y: 50, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', stagger: 0.08 },
       '-=0.35'
    )
 
-   // 4. Social icons fade up
    tl.fromTo('.social-btn',
       { y: 20, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out', stagger: 0.06 },
@@ -158,7 +138,6 @@ function onPanelLeave(el, done) {
       }
    })
 
-   // 1. Social icons fade out first
    tl.to('.social-btn', {
       y: 15,
       opacity: 0,
@@ -167,7 +146,6 @@ function onPanelLeave(el, done) {
       stagger: 0.03,
    })
 
-   // 2. Nav items slide out with stagger (reverse order)
    tl.to('.nav-item', {
       y: 30,
       opacity: 0,
@@ -176,7 +154,6 @@ function onPanelLeave(el, done) {
       stagger: { each: 0.04, from: 'end' },
    }, '-=0.15')
 
-   // 3. Close button shrinks out
    tl.to('.close-btn', {
       scale: 0,
       opacity: 0,
@@ -185,7 +162,6 @@ function onPanelLeave(el, done) {
       ease: 'power2.in',
    }, '-=0.2')
 
-   // 4. Panel slides out smoothly
    tl.to(el, {
       xPercent: 100,
       duration: 0.55,
@@ -193,7 +169,6 @@ function onPanelLeave(el, done) {
    }, '-=0.15')
 }
 
-// ── Data ──────────────────────────────────────────────────────
 const links = [
    { label: 'HOME', href: '#home' },
    { label: 'WORK', href: '#work' },
@@ -222,7 +197,6 @@ const socials = [
 </script>
 
 <style scoped>
-/* ── FAB ─────────────────────────────────────────────────── */
 .fab {
    position: fixed;
    top: 24px;
@@ -270,7 +244,6 @@ const socials = [
    width: 22px;
 }
 
-/* FAB entrance/exit */
 .fab-enter-active,
 .fab-leave-active {
    transition: opacity 0.45s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -286,7 +259,6 @@ const socials = [
    transform: scale(0.6);
 }
 
-/* ── Backdrop ────────────────────────────────────────────── */
 .backdrop {
    position: fixed;
    inset: 0;
@@ -310,7 +282,6 @@ const socials = [
    opacity: 0;
 }
 
-/* ── Panel ───────────────────────────────────────────────── */
 .panel {
    position: fixed;
    top: 0;
@@ -326,9 +297,6 @@ const socials = [
    padding: 3.5rem 3.5rem 3.5rem 4rem;
 }
 
-/* Panel transitions are now handled by GSAP JS hooks */
-
-/* ── Close button ────────────────────────────────────────── */
 .close-btn {
    position: absolute;
    top: 28px;
@@ -350,7 +318,6 @@ const socials = [
    background: #e74c3c;
 }
 
-/* ── Nav list ────────────────────────────────────────────── */
 .nav-list {
    list-style: none;
    padding: 0;
@@ -384,7 +351,6 @@ const socials = [
 
 .nav-item__label {
    display: inline-block;
-   /* needed for magnetic GSAP */
    font-family: 'Pastline Sans', serif;
    font-size: clamp(2rem, 5vw, 3.2rem);
    font-weight: 400;
@@ -404,7 +370,6 @@ const socials = [
    letter-spacing: 0.02em;
 }
 
-/* ── Socials ─────────────────────────────────────────────── */
 .socials {
    display: flex;
    justify-content: center;
@@ -414,7 +379,6 @@ const socials = [
 
 .social-btn {
    display: inline-flex;
-   /* magnetic needs this */
    align-items: center;
    justify-content: center;
    width: 54px;
@@ -435,7 +399,6 @@ const socials = [
    pointer-events: none;
 }
 
-/* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 768px) {
    .panel {
       width: 100vw;

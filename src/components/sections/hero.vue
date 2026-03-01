@@ -1,12 +1,10 @@
 <template>
-   <section class="hero h-[500vh]">
+   <section class="hero">
       <navbar />
 
-      <!-- ── Center bracket intro ─────────────────────────── -->
       <div class="hero__mid">
          <div class="hero__bracket">
             <span class="hero__paren">(</span>
-
             <div class="hero__intro">
                <p class="hero__hello">HELLO!</p>
                <p class="hero__intro-text">
@@ -15,21 +13,21 @@
                   Welcome to my portfolio!
                </p>
             </div>
-
             <span class="hero__paren">)</span>
          </div>
       </div>
 
-      <!-- ── Big display text + image ────────────────────── -->
       <div class="hero__stage">
-         <span class="hero__display">Creative</span>
+         <span class="hero__display" ref="creativeRef" @mousemove="(e) => onDisplayMouseMove(e, creativeRef)"
+            @mouseleave="(e) => onDisplayMouseLeave(e, creativeRef)">Creative</span>
 
          <div class="hero__img-wrap">
             <img src="@/assets/images/hero.webp" alt="Ameen Mohamed" class="hero__img" fetchpriority="high"
                decoding="async" />
          </div>
 
-         <span class="hero__display hero__display--right">dev</span>
+         <span class="hero__display hero__display--right" ref="devRef" @mousemove="(e) => onDisplayMouseMove(e, devRef)"
+            @mouseleave="(e) => onDisplayMouseLeave(e, devRef)">dev</span>
       </div>
 
    </section>
@@ -38,15 +36,62 @@
 <script setup>
 import Navbar from '@/components/layout/navbar.vue'
 import { gsap } from 'gsap'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+
+const creativeRef = ref(null)
+const devRef = ref(null)
+
+
+function buildShadow(x, y) {
+   const layers = []
+   const steps = 8
+   for (let i = 1; i <= steps; i++) {
+      const ratio = i / steps
+      layers.push(`${x * ratio}px ${y * ratio}px 0 rgb(235, 218, 40)`)
+   }
+   return layers.join(', ')
+}
+
+function onDisplayMouseMove(event, elRef) {
+   const el = elRef?.$el || elRef
+   if (!el) return
+   const bounds = el.getBoundingClientRect()
+
+   const offsetX = event.clientX - (bounds.left + bounds.width / 2)
+   const offsetY = event.clientY - (bounds.top + bounds.height / 2)
+
+   const maxShadow = 15
+   const normX = (offsetX / (bounds.width / 2)) * maxShadow
+   const normY = (offsetY / (bounds.height / 2)) * maxShadow
+
+   gsap.to(el, {
+      x: offsetX * 0.08,
+      y: offsetY * 0.12,
+      textShadow: buildShadow(normX, normY),
+      duration: 0.5,
+      ease: 'power2.out',
+   })
+}
+
+function onDisplayMouseLeave(event, elRef) {
+   const el = elRef?.$el || elRef
+   if (!el) return
+
+   gsap.to(el, {
+      x: 0,
+      y: 0,
+      textShadow: buildShadow(0, 0),
+      duration: 0.9,
+      ease: 'elastic.out(1, 0.4)',
+   })
+}
+
 
 onMounted(() => {
-   // Bracket intro entrance
    gsap.from('.hero__bracket', {
       opacity: 0, y: 30, duration: 0.9, ease: 'power3.out', delay: 0.2
    })
 
-   // Display text slide in from sides
    gsap.from('.hero__display:first-of-type', {
       x: -80, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.4
    })
@@ -54,7 +99,6 @@ onMounted(() => {
       x: 80, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.4
    })
 
-   // Image scale in
    gsap.from('.hero__img-wrap', {
       scale: 0.85, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.5
    })
@@ -62,7 +106,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ── Base ──────────────────────────────────────────── */
 .hero {
    min-height: 100vh;
    background: #101318;
@@ -72,7 +115,6 @@ onMounted(() => {
    overflow: hidden;
 }
 
-/* ── Mid section: bracket ─────────────────────────── */
 .hero__mid {
    flex: 1;
    display: flex;
@@ -95,7 +137,6 @@ onMounted(() => {
    color: rgba(255, 255, 255, 0.75);
    user-select: none;
    margin-top: -0.05em;
-   /* optical align */
 }
 
 .hero__intro {
@@ -120,14 +161,12 @@ onMounted(() => {
    line-height: 1.75;
 }
 
-/* ── Stage: big text + image ────────────────────────── */
+/* Stage */
 .hero__stage {
    display: flex;
    align-items: flex-end;
    justify-content: space-between;
-   padding: 0 0 0;
    gap: 1rem;
-   /* allow text to bleed a little at edges */
    margin: 0 -0.02em;
 }
 
@@ -137,19 +176,17 @@ onMounted(() => {
    line-height: 0.9;
    color: #fff;
    white-space: nowrap;
-   /* slight baseline alignment */
    padding-bottom: 0.05em;
    flex-shrink: 0;
+   cursor: default;
+   will-change: filter, opacity;
+   text-shadow: 0 0 0 rgb(235, 218, 40);
 }
 
-/* ── Image in the middle ─────────────────────────── */
 .hero__img-wrap {
    flex: 0 0 auto;
-   /* roughly matches reference proportion */
    width: clamp(160px, 22vw, 320px);
-   /* pushes image up slightly so text aligns to bottom */
    align-self: flex-end;
-   margin-bottom: 0;
 }
 
 .hero__img {
@@ -161,7 +198,6 @@ onMounted(() => {
    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Responsive ──────────────────────────────────── */
 @media (max-width: 700px) {
    .hero__paren {
       font-size: 4.5rem;

@@ -3,10 +3,8 @@
       <div class="container mx-auto px-4 py-4">
          <div class="flex justify-between items-center">
 
-            <!-- Logo -->
             <div class="text-2xl font-bold">|| आमीन ||</div>
 
-            <!-- Nav Links -->
             <div class="flex space-x-12">
                <a v-for="(link, index) in navLinks" :key="index" :href="link.href" class="nav-link"
                   :ref="el => { if (el) linkRefs[index] = el }" @mousemove="(e) => onMouseMove(e, linkRefs[index])"
@@ -43,7 +41,6 @@ const navLinks = [
 <style scoped>
 .nav-link {
    display: inline-block;
-   /* required so GSAP translate works correctly */
    position: relative;
    cursor: pointer;
    font-weight: 500;
